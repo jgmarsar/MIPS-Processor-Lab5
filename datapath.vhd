@@ -41,6 +41,7 @@ architecture STR of datapath is
 	signal ext_imm_EX : std_logic_vector(31 downto 0);
 	signal func_EX : std_logic_vector(5 downto 0);
 	signal shamt_EX : std_logic_vector(4 downto 0);
+	signal rs_EX : std_logic_vector(4 downto 0);
 	signal rt_EX : std_logic_vector(4 downto 0);
 	signal rt_MEM : std_logic_vector(4 downto 0);
 	signal rt_WB : std_logic_vector(4 downto 0);
@@ -146,7 +147,7 @@ begin
 		port map(
 			clk            => clk,
 			rst            => rst,
-			flush          => '0',					--switch to flush in Lab 5
+			flush          => flush,
 			PC4_IF         => PC4_IF,
 			instruction_IF => instruction_IF,
 			PC4_ID         => PC4_ID,
@@ -332,6 +333,7 @@ begin
 			ext_imm_ID      => ext_imm_ID,
 			func_ID         => instruction_ID(5 downto 0),
 			shamt_ID        => instruction_ID(10 downto 6),
+			rs_ID			=> instruction_ID(25 downto 21),
 			rt_ID			=> instruction_ID(20 downto 16),
 			rd_ID			=> instruction_ID(15 downto 11),
 			PC4_ID          => PC4_ID,
@@ -340,6 +342,7 @@ begin
 			ext_imm_EX      => ext_imm_EX,
 			func_EX         => func_EX,
 			shamt_EX        => shamt_EX,
+			rs_EX			=> rs_EX,
 			rt_EX			=> rt_EX,
 			rd_EX			=> rd_EX,
 			PC4_EX          => PC4_EX

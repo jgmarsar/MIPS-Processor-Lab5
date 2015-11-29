@@ -39,6 +39,7 @@ entity ID_EX_reg is
 		ext_imm_ID : in std_logic_vector(31 downto 0);
 		func_ID : in std_logic_vector(5 downto 0);
 		shamt_ID : in std_logic_vector(4 downto 0);
+		rs_ID : in std_logic_vector(4 downto 0);
 		rt_ID : in std_logic_vector(4 downto 0);
 		rd_ID : in std_logic_vector(4 downto 0);
 		PC4_ID : in std_logic_vector(31 downto 0);
@@ -48,6 +49,7 @@ entity ID_EX_reg is
 		ext_imm_EX : out std_logic_vector(31 downto 0);
 		func_EX : out std_logic_vector(5 downto 0);
 		shamt_EX : out std_logic_vector(4 downto 0);
+		rs_EX : out std_logic_vector(4 downto 0);
 		rt_EX : out std_logic_vector(4 downto 0);
 		rd_EX : out std_logic_vector(4 downto 0);
 		PC4_EX : out std_logic_vector(31 downto 0)
@@ -75,6 +77,7 @@ begin
 			ext_imm_EX <= (others => '0');
 			func_EX <= (others => '0');
 			shamt_EX <= (others => '0');
+			rs_EX <= (others => '0');
 			rt_EX <= (others => '0');
 			rd_EX <= (others => '0');
 			PC4_EX <= (others => '0');
@@ -95,6 +98,7 @@ begin
 			ext_imm_EX <= ext_imm_ID;
 			func_EX <= func_ID;
 			shamt_EX <= shamt_ID;
+			rs_EX <= rs_ID;
 			rt_EX <= rt_ID;
 			rd_EX <= rd_ID;
 			PC4_EX <= PC4_ID;
