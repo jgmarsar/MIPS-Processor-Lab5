@@ -83,7 +83,7 @@ begin
 				ALUSrc <= C_Q1;
 				regDst <= C_RD;
 				if (func = "001000") then		--JR
-					Rtype <= '0'
+					Rtype <= '0';
 					jr <= '1';
 					jump <= '1';
 					jtype <= C_JREG;

@@ -42,46 +42,63 @@ architecture STR of datapath is
 	signal ext_imm_EX : std_logic_vector(31 downto 0);
 	signal func_EX : std_logic_vector(5 downto 0);
 	signal shamt_EX : std_logic_vector(4 downto 0);
+	signal rs_ID : std_logic_vector(4 downto 0);
 	signal rs_EX : std_logic_vector(4 downto 0);
+	signal rt_ID : std_logic_vector(4 downto 0);
 	signal rt_EX : std_logic_vector(4 downto 0);
 	signal rt_MEM : std_logic_vector(4 downto 0);
 	signal rt_WB : std_logic_vector(4 downto 0);
+	signal rd_ID : std_logic_vector(4 downto 0);
 	signal rd_EX : std_logic_vector(4 downto 0);
 	signal rd_MEM : std_logic_vector(4 downto 0);
 	signal rd_WB : std_logic_vector(4 downto 0);
 	
 	--control signals
+	signal ALUop_IF : std_logic_vector(2 downto 0);
 	signal ALUop_ID : std_logic_vector(2 downto 0);
 	signal ALUop_EX : std_logic_vector(2 downto 0);
+	signal wr_IF : std_logic;
 	signal wr_ID : std_logic;
 	signal wr_EX : std_logic;
 	signal wr_MEM : std_logic;
 	signal wr_WB : std_logic;
+	signal ALUSrc_IF : std_logic;
 	signal ALUSrc_ID : std_logic;
 	signal ALUSrc_EX : std_logic;
+	signal regDst_IF : std_logic;
 	signal regDst_ID : std_logic;
 	signal regDst_EX : std_logic;
 	signal regDst_MEM : std_logic;
 	signal regDst_WB : std_logic;
+	signal ext_sel_IF : std_logic;
 	signal ext_sel_ID : std_logic;
+	signal WriteDataSel_IF : std_logic;
 	signal WriteDataSel_ID : std_logic;
 	signal WriteDataSel_EX : std_logic;
 	signal WriteDataSel_MEM : std_logic;
 	signal WriteDataSel_WB : std_logic;
+	signal MemWrite_IF : std_logic;
 	signal MemWrite_ID : std_logic;
 	signal MemWrite_EX : std_logic;
+	signal sizeSel_IF : std_logic_vector(1 downto 0);
 	signal sizeSel_ID : std_logic_vector(1 downto 0);
 	signal sizeSel_EX : std_logic_vector(1 downto 0);
+	signal jump_IF : std_logic;
 	signal jump_ID : std_logic;
 	signal jump_EX : std_logic;
+	signal jtype_IF : std_logic;
 	signal jtype_ID : std_logic;
+	signal jal_IF : std_logic;
 	signal jal_ID : std_logic;
 	signal jal_EX : std_logic;
 	signal jal_MEM : std_logic;
 	signal jal_WB : std_logic;
-	signal BEQ : std_logic;
-	signal BNE : std_logic;
+	signal BEQ_IF : std_logic;
+	signal BNE_IF : std_logic;
+	signal BEQ_ID : std_logic;
+	signal BNE_ID : std_logic;
 	signal flush : std_logic;
+	signal instName_IF : instruction_TYPE;
 	signal instName_ID : instruction_TYPE;
 	signal instName_EX : instruction_TYPE;
 	signal instName_MEM : instruction_TYPE;
@@ -129,12 +146,24 @@ architecture STR of datapath is
 	signal ALU_srcB_sel : std_logic_vector(1 downto 0);
 	signal IDEX_q0_sel : std_logic_vector(1 downto 0);
 	signal IDEX_q1_sel : std_logic_vector(1 downto 0);
+	signal load_IF : std_logic;
+	signal Rtype_IF : std_logic;
+	signal Itype_IF : std_logic;
+	signal store_IF : std_logic;
+	signal jr_IF : std_logic;
 	signal load_ID : std_logic;
 	signal Rtype_ID : std_logic;
 	signal Itype_ID : std_logic;
 	signal store_ID : std_logic;
-	signal jr_ID : std_logic
+	signal jr_ID : std_logic;
 begin
+	
+	--REMOVE:
+	IDEX_q0_sel <= "00";
+	IDEX_q1_sel <= "00";
+	ALU_srcA_sel <= "00";
+	ALU_srcB_sel <= "00";
+	
 	--INSTRUCTION FETCH
 	U_PC : entity work.reg32
 		generic map(
@@ -158,17 +187,6 @@ begin
 		);
 		
 	flush <= jump_ID or branch_ID or stall ;
-		
-	U_IF_ID_REG : entity work.IF_ID_reg
-		port map(
-			clk            => clk,
-			rst            => rst,
-			flush          => flush,
-			PC4_IF         => PC4_IF,
-			instruction_IF => instruction_IF,
-			PC4_ID         => PC4_ID,
-			instruction_ID => instruction_ID
-		);
 		
 	--PC Update
 	U_ADD4 : entity work.add32
@@ -220,8 +238,8 @@ begin
 		
 	U_BRANCH_CONT : entity work.branch_control
 		port map(
-			BEQ    => BEQ,
-			BNE    => BNE,
+			BEQ    => BEQ_ID,
+			BNE    => BNE_ID,
 			Z      => equal,
 			branch => branch_ID
 		);
@@ -235,7 +253,7 @@ begin
 		);
 		
 	PC_Sel(0) <= branch_ID or jump_ID;
-	PC_Sel(1) <= stall;
+	PC_Sel(1) <= '0';			--change to stall
 	
 	U_PC_NEXT_MUX : entity work.mux32x4
 		port map(
@@ -246,12 +264,92 @@ begin
 			Sel => PC_Sel,
 			O   => PC_next
 		);
+		
+	U_IF_ID_REG : entity work.IF_ID_reg
+		port map(
+			clk             => clk,
+			rst             => rst,
+			flush           => flush,
+			PC4_IF          => PC4_IF,
+			instruction_IF  => instruction_IF,
+			ALUop_IF        => ALUop_IF,
+			wr_IF           => wr_IF,
+			ALUSrc_IF       => ALUSrc_IF,
+			regDst_IF       => regDst_IF,
+			ext_sel_IF      => ext_sel_IF,
+			WriteDataSel_IF => WriteDataSel_IF,
+			MemWrite_IF     => MemWrite_IF,
+			sizeSel_IF      => sizeSel_IF,
+			jump_IF         => jump_IF,
+			jtype_IF        => jtype_IF,
+			jal_IF          => jal_IF,
+			BEQ_IF          => BEQ_IF,
+			BNE_IF          => BNE_IF,
+			instName_IF     => instName_IF,
+			load_IF         => load_IF,
+			Rtype_IF        => Rtype_IF,
+			Itype_IF        => Itype_IF,
+			store_IF        => store_IF,
+			jr_IF           => jr_IF,
+			rs_IF           => instruction_IF(25 downto 21),
+			rt_IF           => instruction_IF(20 downto 16),
+			rd_IF           => instruction_IF(15 downto 11),
+			PC4_ID          => PC4_ID,
+			instruction_ID  => instruction_ID,
+			ALUop_ID        => ALUop_ID,
+			wr_ID           => wr_ID,
+			ALUSrc_ID       => ALUSrc_ID,
+			regDst_ID       => regDst_ID,
+			ext_sel_ID      => ext_sel_ID,
+			WriteDataSel_ID => WriteDataSel_ID,
+			MemWrite_ID     => MemWrite_ID,
+			sizeSel_ID      => sizeSel_ID,
+			jump_ID         => jump_ID,
+			jtype_ID        => jtype_ID,
+			jal_ID          => jal_ID,
+			BEQ_ID          => BEQ_ID,
+			BNE_ID          => BNE_ID,
+			instName_ID     => instName_ID,
+			load_ID         => load_ID,
+			Rtype_ID        => Rtype_ID,
+			Itype_ID        => Itype_ID,
+			store_ID        => store_ID,
+			jr_ID           => jr_ID,
+			rs_ID           => rs_ID,
+			rt_ID           => rt_ID,
+			rd_ID           => rd_ID
+		);
 	
 	--INSTRUCTION DECODE
+	U_CONTROL : entity work.control
+		port map(
+			opcode => instruction_IF(31 downto 26),
+			func => instruction_IF(5 downto 0),
+			ALUop  => ALUop_IF,
+			wr     => wr_IF,
+			ALUSrc => ALUSrc_IF,
+			regDst => regDst_IF,
+			ext_sel => ext_sel_IF,
+			WriteDataSel => WriteDataSel_IF,
+			MemWrite => MemWrite_IF,
+			sizeSel => sizeSel_IF,
+			jump => jump_IF,
+			jtype => jtype_IF,
+			jal => jal_IF,
+			BEQ => BEQ_IF,
+			BNE => BNE_IF,
+			instName => instName_IF,
+			load => load_IF,
+			Rtype => Rtype_IF,
+			Itype => Itype_IF,
+			store => store_IF,
+			jr => jr_IF
+		);
+	
 	U_REGS : entity work.registerFile
 		port map(
-			rr0 => instruction_ID(25 downto 21),	--source register
-			rr1 => instruction_ID(20 downto 16),	--source register
+			rr0 => rs_ID,	--source register
+			rr1 => rt_ID,	--source register
 			rw  => rw,							--destination register from MUX
 			d   => regData,
 			clk => clk,
@@ -282,31 +380,6 @@ begin
 			q0    => q0_ID,
 			q1    => q1_ID,
 			equal => equal
-		);
-		
-	U_CONTROL : entity work.control
-		port map(
-			opcode => instruction_ID(31 downto 26),
-			func => instruction_ID(5 downto 0),
-			ALUop  => ALUop_ID,
-			wr     => wr_ID,
-			ALUSrc => ALUSrc_ID,
-			regDst => regDst_ID,
-			ext_sel => ext_sel_ID,
-			WriteDataSel => WriteDataSel_ID,
-			MemWrite => MemWrite_ID,
-			sizeSel => sizeSel_ID,
-			jump => jump_ID,
-			jtype => jtype_ID,
-			jal => jal_ID,
-			BEQ => BEQ,
-			BNE => BNE,
-			instName => instName_ID,
-			load => load_ID,
-			Rtype => Rtype_ID,
-			Itype => Itype_ID,
-			store => store_ID,
-			jr => jr_ID
 		);
 		
 	U_ALU_CONT : entity work.alu32control
@@ -376,9 +449,9 @@ begin
 			ext_imm_ID      => ext_imm_ID,
 			func_ID         => instruction_ID(5 downto 0),
 			shamt_ID        => instruction_ID(10 downto 6),
-			rs_ID			=> instruction_ID(25 downto 21),
-			rt_ID			=> instruction_ID(20 downto 16),
-			rd_ID			=> instruction_ID(15 downto 11),
+			rs_ID			=> rs_ID,
+			rt_ID			=> rt_ID,
+			rd_ID			=> rd_ID,
 			PC4_ID          => PC4_ID,
 			q0_EX           => q0_EX,
 			q1_EX           => q1_EX,
