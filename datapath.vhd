@@ -33,6 +33,7 @@ architecture STR of datapath is
 	signal branch_EX : std_logic;
 	signal BorJ : std_logic;
 	signal PC_BorJ : std_logic_vector(31 downto 0);
+	signal PC_Sel : std_logic_vector(1 downto 0);
 	
 	--instruction signals
 	signal instruction_IF : std_logic_vector(31 downto 0);
@@ -89,6 +90,8 @@ architecture STR of datapath is
 	--register file signals
 	signal inst_rw : std_logic_vector(4 downto 0);
 	signal rw : std_logic_vector(4 downto 0);
+	signal q0 : std_logic_vector(31 downto 0);
+	signal q1 : std_logic_vector(31 downto 0);
 	signal q0_ID : std_logic_vector(31 downto 0);
 	signal q0_EX : std_logic_vector(31 downto 0);
 	signal q1_ID : std_logic_vector(31 downto 0);
@@ -98,7 +101,9 @@ architecture STR of datapath is
 	signal equal : std_logic;
 	
 	--ALU I/O signals
+	signal srca : std_logic_vector(31 downto 0);
 	signal srcb : std_logic_vector(31 downto 0);
+	signal srcb_default : std_logic_vector(31 downto 0);
 	signal shdir : std_logic;
 	signal sh16 : std_logic;
 	signal ALUcont : std_logic_vector(3 downto 0);
@@ -118,6 +123,12 @@ architecture STR of datapath is
 	signal readDataAdj_MEM : std_logic_vector(31 downto 0);
 	signal readDataAdj_WB : std_logic_vector(31 downto 0);
 	
+	--hazard detection
+	signal stall : std_logic;
+	signal ALU_srcA_sel : std_logic_vector(1 downto 0);
+	signal ALU_srcB_sel : std_logic_vector(1 downto 0);
+	signal IDEX_q0_sel : std_logic_vector(1 downto 0);
+	signal IDEX_q1_sel : std_logic_vector(1 downto 0);
 begin
 	--INSTRUCTION FETCH
 	U_PC : entity work.reg32
@@ -141,7 +152,7 @@ begin
 			q       => instruction_IF
 		);
 		
-	flush <= jump_ID or branch_ID ;
+	flush <= jump_ID or branch_ID or stall ;
 		
 	U_IF_ID_REG : entity work.IF_ID_reg
 		port map(
@@ -218,16 +229,18 @@ begin
 			O   => PC_BorJ
 		);
 		
-	BorJ <= branch_ID or jump_ID;
-		
-	U_PC_NEXT_MUX : entity work.mux32
+	PC_Sel(0) <= branch_ID or jump_ID;
+	PC_Sel(1) <= stall;
+	
+	U_PC_NEXT_MUX : entity work.mux32x4
 		port map(
 			in0 => PC4_IF,
 			in1 => PC_BorJ,
-			Sel => BorJ,
+			in2 => PC,
+			in3 => PC,
+			Sel => PC_Sel,
 			O   => PC_next
 		);
-			
 	
 	--INSTRUCTION DECODE
 	U_REGS : entity work.registerFile
@@ -239,8 +252,8 @@ begin
 			clk => clk,
 			wr  => wr_WB,
 			rst => rst,
-			q0  => q0_ID,
-			q1  => q1_ID
+			q0  => q0,
+			q1  => q1
 		);
 		
 	U_REG_MUX1 : entity work.mux5		--select between rt and rd
@@ -302,6 +315,26 @@ begin
 			out0 => ext_imm_ID
 		);
 		
+	U_Q0_MUX : entity work.mux32x4
+		port map(
+			in0 => q0,
+			in1 => ALUout_MEM,
+			in2 => regData,
+			in3 => PC4_MEM,
+			Sel => IDEX_q0_sel,
+			O   => q0_ID
+		);
+		
+	U_Q1_MUX : entity work.mux32x4
+		port map(
+			in0 => q1,
+			in1 => ALUout_MEM,
+			in2 => regData,
+			in3 => PC4_MEM,
+			Sel => IDEX_q1_sel,
+			O   => q1_ID
+		);
+	
 	U_ID_EX_REG : entity work.ID_EX_reg
 		port map(
 			clk             => clk,
@@ -351,7 +384,7 @@ begin
 	--INSTRUCTION EXECUTE
 	U_ALU : entity work.alu32
 		port map(
-			ia      => q0_EX,
+			ia      => srca,
 			ib      => srcb,
 			control => ALUcont,
 			shamt   => shamt_EX,
@@ -369,6 +402,26 @@ begin
 			in0 => q1_EX,
 			in1 => ext_imm_EX,
 			Sel => ALUSrc_EX,
+			O   => srcb_default
+		);
+		
+	U_SRCA_MUX : entity work.mux32x4
+		port map(
+			in0 => q0_EX,
+			in1 => ALUout_MEM,
+			in2 => regData,
+			in3 => PC4_MEM,
+			Sel => ALU_srcA_sel,
+			O   => srca
+		);
+		
+	U_SRCB_MUX : entity work.mux32x4
+		port map(
+			in0 => srcb_default,
+			in1 => ALUout_MEM,
+			in2 => regData,
+			in3 => PC4_MEM,
+			Sel => ALU_srcB_sel,
 			O   => srcb
 		);
 	
