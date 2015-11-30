@@ -129,6 +129,11 @@ architecture STR of datapath is
 	signal ALU_srcB_sel : std_logic_vector(1 downto 0);
 	signal IDEX_q0_sel : std_logic_vector(1 downto 0);
 	signal IDEX_q1_sel : std_logic_vector(1 downto 0);
+	signal load_ID : std_logic;
+	signal Rtype_ID : std_logic;
+	signal Itype_ID : std_logic;
+	signal store_ID : std_logic;
+	signal jr_ID : std_logic
 begin
 	--INSTRUCTION FETCH
 	U_PC : entity work.reg32
@@ -296,7 +301,12 @@ begin
 			jal => jal_ID,
 			BEQ => BEQ,
 			BNE => BNE,
-			instName => instName_ID
+			instName => instName_ID,
+			load => load_ID,
+			Rtype => Rtype_ID,
+			Itype => Itype_ID,
+			store => store_ID,
+			jr => jr_ID
 		);
 		
 	U_ALU_CONT : entity work.alu32control

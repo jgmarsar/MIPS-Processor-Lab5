@@ -20,7 +20,14 @@ entity control is
 		jal : out std_logic;
 		BEQ : out std_logic;
 		BNE : out std_logic;
-		instName : out instruction_TYPE
+		instName : out instruction_TYPE;
+		
+		--signals for hazard control
+		load : out std_logic;
+		Rtype : out std_logic;
+		Itype : out std_logic;
+		store : out std_logic;
+		jr : out std_logic
 	);
 end entity control;
 
@@ -61,14 +68,23 @@ begin
 		BEQ <= '0';
 		BNE <= '0';
 		instName <= NOP;
+		
+		load <= '0';
+		Rtype <= '0';
+		Itype <= '0';
+		store <= '0';
+		jr <= '0';
 		case opcode is
 			when "000000" =>			--R-type
+				Rtype <= '1';
 				ALUop <= "010";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
 				ALUSrc <= C_Q1;
 				regDst <= C_RD;
 				if (func = "001000") then		--JR
+					Rtype <= '0'
+					jr <= '1';
 					jump <= '1';
 					jtype <= C_JREG;
 					wr <= '0';
@@ -121,6 +137,7 @@ begin
 				BNE <= '1';
 				instName <= I_BNE;
 			when "001000" =>			--ADDI
+				Itype <= '1';
 				ALUop <= "000";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
@@ -129,6 +146,7 @@ begin
 				ext_sel <= C_SIGN;
 				instName <= I_ADDI;
 			when "001001" =>			--ADDIU
+				Itype <= '1';
 				ALUop <= "000";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
@@ -137,6 +155,7 @@ begin
 				ext_sel <= C_ZERO;
 				instName <= I_ADDIU;
 			when "001010" =>			--SLTI
+				Itype <= '1';
 				ALUop <= "101";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
@@ -145,6 +164,7 @@ begin
 				ext_sel <= C_SIGN;
 				instName <= I_SLTI;
 			when "001011" =>			--SLTIU
+				Itype <= '1';
 				ALUop <= "110";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
@@ -153,6 +173,7 @@ begin
 				ext_sel <= C_ZERO;
 				instName <= I_SLTIU;
 			when "001100" =>			--ANDI
+				Itype <= '1';
 				ALUop <= "011";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
@@ -161,6 +182,7 @@ begin
 				ext_sel <= C_ZERO;
 				instName <= I_ANDI;
 			when "001101" =>			--ORI
+				Itype <= '1';
 				ALUop <= "100";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
@@ -169,6 +191,7 @@ begin
 				ext_sel <= C_ZERO;
 				instName <= I_ORI;
 			when "001111" =>			--LUI
+				Itype <= '1';
 				ALUop <= "111";
 				wr <= '1';
 				WriteDataSel <= C_ALU;
@@ -177,6 +200,7 @@ begin
 				ext_sel <= C_ZERO;
 				instName <= I_LUI;
 			when "100011" =>			--LW
+				load <= '1';
 				ALUop <= "000";
 				wr <= '1';
 				WriteDataSel <= C_MEM;
@@ -186,6 +210,7 @@ begin
 				sizeSel <= C_WORD;
 				instName <= I_LW;
 			when "100100" =>			--LBU
+				load <= '1';
 				ALUop <= "000";
 				wr <= '1';
 				WriteDataSel <= C_MEM;
@@ -195,6 +220,7 @@ begin
 				sizeSel <= C_BYTE;
 				instName <= I_LBU;
 			when "100101" =>			--LHU
+				load <= '1';
 				ALUop <= "000";
 				wr <= '1';
 				WriteDataSel <= C_MEM;
@@ -204,6 +230,7 @@ begin
 				sizeSel <= C_HALF;
 				instName <= I_LHU;
 			when "101000" =>			--SB
+				store <= '1';
 				ALUop <= "000";
 				ALUSrc <= C_IMM;
 				ext_sel <= C_SIGN;
@@ -211,6 +238,7 @@ begin
 				sizeSel <= C_BYTE;
 				instName <= I_SB;
 			when "101001" =>			--SH
+				store <= '1';
 				ALUop <= "000";
 				ALUSrc <= C_IMM;
 				ext_sel <= C_SIGN;
@@ -218,6 +246,7 @@ begin
 				sizeSel <= C_HALF;
 				instName <= I_SH;
 			when "101011" =>			--SW
+				store <= '1';
 				ALUop <= "000";
 				ALUSrc <= C_IMM;
 				ext_sel <= C_SIGN;
