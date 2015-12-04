@@ -14,12 +14,18 @@ entity EX_MEM_reg is
 		WriteDataSel_EX : in std_logic;
 		jal_EX : in std_logic;
 		instName_EX : in instruction_TYPE;
+		load_EX : in std_logic;
+		Rtype_EX : in std_logic;
+		Itype_EX : in std_logic;
 		
 		wr_MEM : out std_logic;
 		regDst_MEM : out std_logic;
 		WriteDataSel_MEM : out std_logic;
 		jal_MEM : out std_logic;
 		instName_MEM : out instruction_TYPE;
+		load_MEM : out std_logic;
+		Rtype_MEM : out std_logic;
+		Itype_MEM : out std_logic;
 		
 		--datapath
 		ALUout_EX : in std_logic_vector(31 downto 0);
@@ -52,6 +58,9 @@ begin
 			rt_MEM <= (others => '0');
 			rd_MEM <= (others => '0');
 			instName_MEM <= NOP;
+			load_MEM <= '0';
+			Rtype_MEM <= '0';
+			Itype_MEM <= '0';
 		elsif (rising_edge(clk)) then
 			wr_MEM <= wr_EX;
 			regDst_MEM <= regDst_EX;
@@ -63,6 +72,9 @@ begin
 			rt_MEM <= rt_EX;
 			rd_MEM <= rd_EX;
 			instName_MEM <= instName_EX;
+			load_MEM <= load_EX;
+			Rtype_MEM <= Rtype_EX;
+			Itype_MEM <= Itype_EX;
 		end if;
 	end process;
 end RTL;

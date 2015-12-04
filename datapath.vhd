@@ -29,8 +29,9 @@ architecture STR of datapath is
 	signal PC_no_branch : std_logic_vector(31 downto 0);
 	signal PC_branch : std_logic_vector(31 downto 0);
 	signal offset : std_logic_vector(33 downto 0);
+	signal take_branch_ID : std_logic;
+	signal branch_IF : std_logic;
 	signal branch_ID : std_logic;
-	signal branch_EX : std_logic;
 	signal BorJ : std_logic;
 	signal PC_BorJ : std_logic_vector(31 downto 0);
 	signal PC_Sel : std_logic_vector(1 downto 0);
@@ -85,7 +86,6 @@ architecture STR of datapath is
 	signal sizeSel_EX : std_logic_vector(1 downto 0);
 	signal jump_IF : std_logic;
 	signal jump_ID : std_logic;
-	signal jump_EX : std_logic;
 	signal jtype_IF : std_logic;
 	signal jtype_ID : std_logic;
 	signal jal_IF : std_logic;
@@ -156,13 +156,73 @@ architecture STR of datapath is
 	signal Itype_ID : std_logic;
 	signal store_ID : std_logic;
 	signal jr_ID : std_logic;
+	signal load_EX : std_logic;
+	signal Rtype_EX : std_logic;
+	signal Itype_EX : std_logic;
+	signal store_EX : std_logic;
+	signal load_MEM : std_logic;
+	signal Rtype_MEM : std_logic;
+	signal Itype_MEM : std_logic;
+	signal load_WB : std_logic;
+	signal Rtype_WB : std_logic;
+	signal Itype_WB : std_logic;
 begin
 	
 	--REMOVE:
-	IDEX_q0_sel <= "00";
-	IDEX_q1_sel <= "00";
-	ALU_srcA_sel <= "00";
-	ALU_srcB_sel <= "00";
+	--IDEX_q0_sel <= "00";
+	--IDEX_q1_sel <= "00";
+	--ALU_srcA_sel <= "00";
+	--ALU_srcB_sel <= "00";
+	
+	--HAZARD UNIT
+	U_HAZ : entity work.hazardUnit
+		port map(
+			load_IF      => load_IF,
+			Rtype_IF     => Rtype_IF,
+			Itype_IF     => Itype_IF,
+			store_IF     => store_IF,
+			jr_IF        => jr_IF,
+			jal_IF       => jal_IF,
+			jump_IF      => jump_IF,
+			branch_IF    => branch_IF,
+			load_ID      => load_ID,
+			Rtype_ID     => Rtype_ID,
+			Itype_ID     => Itype_ID,
+			store_ID     => store_ID,
+			jr_ID        => jr_ID,
+			jal_ID       => jal_ID,
+			branch_ID    => branch_ID,
+			load_EX      => load_EX,
+			Rtype_EX     => Rtype_EX,
+			Itype_EX     => Itype_EX,
+			store_EX     => store_EX,
+			jal_EX       => jal_EX,
+			load_MEM     => load_MEM,
+			Rtype_MEM    => Rtype_MEM,
+			Itype_MEM    => Itype_MEM,
+			jal_MEM      => jal_MEM,
+			load_WB      => load_WB,
+			Rtype_WB     => Rtype_WB,
+			Itype_WB     => Itype_WB,
+			jal_WB       => jal_WB,
+			rs_IF        => instruction_IF(25 downto 21),
+			rt_IF        => instruction_IF(20 downto 16),
+			rs_ID        => rs_ID,
+			rt_ID        => rt_ID,
+			rd_ID        => rd_ID,
+			rs_EX        => rs_EX,
+			rt_EX        => rt_EX,
+			rd_EX        => rd_EX,
+			rt_MEM       => rt_MEM,
+			rd_MEM       => rd_MEM,
+			rt_WB        => rt_WB,
+			rd_WB        => rd_WB,
+			stall        => stall,
+			ALU_srcA_sel => ALU_srcA_sel,
+			ALU_srcB_sel => ALU_srcB_sel,
+			IDEX_q0_sel  => IDEX_q0_sel,
+			IDEX_q1_sel  => IDEX_q1_sel
+		);
 	
 	--INSTRUCTION FETCH
 	U_PC : entity work.reg32
@@ -186,7 +246,7 @@ begin
 			q       => instruction_IF
 		);
 		
-	flush <= jump_ID or branch_ID or stall ;
+	flush <= jump_ID or take_branch_ID or stall ;
 		
 	--PC Update
 	U_ADD4 : entity work.add32
@@ -241,19 +301,19 @@ begin
 			BEQ    => BEQ_ID,
 			BNE    => BNE_ID,
 			Z      => equal,
-			branch => branch_ID
+			branch => take_branch_ID
 		);
 		
 	U_BRANCH_MUX : entity work.mux32
 		port map(
 			in0 => jump_addr,
 			in1 => PC_branch,
-			Sel => branch_ID,
+			Sel => take_branch_ID,
 			O   => PC_BorJ
 		);
 		
-	PC_Sel(0) <= branch_ID or jump_ID;
-	PC_Sel(1) <= '0';			--change to stall
+	PC_Sel(0) <= take_branch_ID or jump_ID;
+	PC_Sel(1) <= stall;
 	
 	U_PC_NEXT_MUX : entity work.mux32x4
 		port map(
@@ -285,6 +345,7 @@ begin
 			jal_IF          => jal_IF,
 			BEQ_IF          => BEQ_IF,
 			BNE_IF          => BNE_IF,
+			branch_IF		=> branch_IF,
 			instName_IF     => instName_IF,
 			load_IF         => load_IF,
 			Rtype_IF        => Rtype_IF,
@@ -309,6 +370,7 @@ begin
 			jal_ID          => jal_ID,
 			BEQ_ID          => BEQ_ID,
 			BNE_ID          => BNE_ID,
+			branch_ID		=> branch_ID,
 			instName_ID     => instName_ID,
 			load_ID         => load_ID,
 			Rtype_ID        => Rtype_ID,
@@ -338,6 +400,7 @@ begin
 			jal => jal_IF,
 			BEQ => BEQ_IF,
 			BNE => BNE_IF,
+			branch => branch_IF,
 			instName => instName_IF,
 			load => load_IF,
 			Rtype => Rtype_IF,
@@ -430,9 +493,11 @@ begin
 			MemWrite_ID     => MemWrite_ID,
 			sizeSel_ID      => sizeSel_ID,
 			jal_ID          => jal_ID,
-			jump_ID         => jump_ID,
-			branch_ID       => branch_ID,
 			instName_ID     => instName_ID,
+			load_ID 		=> load_ID,
+			Rtype_ID 		=> Rtype_ID,
+			Itype_ID 		=> Itype_ID,
+			store_ID 		=> store_ID,
 			ALUop_EX        => ALUop_EX,
 			wr_EX           => wr_EX,
 			ALUSrc_EX       => ALUSrc_EX,
@@ -441,9 +506,11 @@ begin
 			MemWrite_EX     => MemWrite_EX,
 			sizeSel_EX      => sizeSel_EX,
 			jal_EX          => jal_EX,
-			jump_EX         => jump_EX,
-			branch_EX       => branch_EX,
 			instName_EX     => instName_EX,
+			load_EX 		=> load_EX,
+			Rtype_EX 		=> Rtype_EX,
+			Itype_EX 		=> Itype_EX,
+			store_EX 		=> store_EX,
 			q0_ID           => q0_ID,
 			q1_ID           => q1_ID,
 			ext_imm_ID      => ext_imm_ID,
@@ -482,10 +549,10 @@ begin
 		
 	U_ALU_MUX : entity work.mux32
 		port map(
-			in0 => q1_EX,
+			in0 => srcb_default,
 			in1 => ext_imm_EX,
 			Sel => ALUSrc_EX,
-			O   => srcb_default
+			O   => srcb
 		);
 		
 	U_SRCA_MUX : entity work.mux32x4
@@ -500,12 +567,12 @@ begin
 		
 	U_SRCB_MUX : entity work.mux32x4
 		port map(
-			in0 => srcb_default,
+			in0 => q1_EX,
 			in1 => ALUout_MEM,
 			in2 => regData,
 			in3 => PC4_MEM,
 			Sel => ALU_srcB_sel,
-			O   => srcb
+			O   => srcb_default
 		);
 	
 	U_BYTE_CONT : entity work.byte_control
@@ -517,7 +584,7 @@ begin
 		
 	U_BYTE_ADJ_WR : entity work.byte_adj_write
 		port map(
-			dataIn     => q1_EX,
+			dataIn     => srcb_default,
 			byteEnable => byteEnable_EX,
 			dataOut    => writeData
 		);
@@ -531,11 +598,17 @@ begin
 			WriteDataSel_EX  => WriteDataSel_EX,
 			jal_EX           => jal_EX,
 			instName_EX      => instName_EX,
+			load_EX			 => load_EX,
+			Rtype_EX		 => Rtype_EX,
+			Itype_EX		 => Itype_EX,
 			wr_MEM           => wr_MEM,
 			regDst_MEM       => regDst_MEM,
 			WriteDataSel_MEM => WriteDataSel_MEM,
 			jal_MEM          => jal_MEM,
 			instName_MEM     => instName_MEM,
+			load_MEM		 => load_MEM,
+			Rtype_MEM		 => Rtype_MEM,
+			Itype_MEM		 => Itype_MEM,
 			ALUout_EX        => ALUout_EX,
 			byteEnable_EX    => byteEnable_EX,
 			PC4_EX           => PC4_EX,
@@ -591,11 +664,17 @@ begin
 			WriteDataSel_MEM => WriteDataSel_MEM,
 			jal_MEM          => jal_MEM,
 			instName_MEM     => instName_MEM,
+			load_MEM		 => load_MEM,
+			Rtype_MEM		 => Rtype_MEM,
+			Itype_MEM		 => Itype_MEM,
 			wr_WB            => wr_WB,
 			regDst_WB        => regDst_WB,
 			WriteDataSel_WB  => WriteDataSel_WB,
 			jal_WB           => jal_WB,
 			instName_WB      => instName_WB,
+			load_WB		 	 => load_MEM,
+			Rtype_WB		 => Rtype_WB,
+			Itype_WB		 => Itype_WB,
 			readDataAdj_MEM  => readDataAdj_MEM,
 			ALUout_MEM       => ALUout_MEM,
 			PC4_MEM          => PC4_MEM,

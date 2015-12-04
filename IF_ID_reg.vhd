@@ -24,6 +24,7 @@ entity IF_ID_reg is
 		jal_IF : in std_logic;
 		BEQ_IF : in std_logic;
 		BNE_IF : in std_logic;
+		branch_IF : in std_logic;
 		instName_IF : in instruction_TYPE;
 		load_IF : in std_logic;
 		Rtype_IF : in std_logic;
@@ -49,6 +50,7 @@ entity IF_ID_reg is
 		jal_ID : out std_logic;
 		BEQ_ID : out std_logic;
 		BNE_ID : out std_logic;
+		branch_ID : out std_logic;
 		instName_ID : out instruction_TYPE;
 		load_ID : out std_logic;
 		Rtype_ID : out std_logic;
@@ -82,6 +84,7 @@ begin
 			jal_ID <= '0';
 			BEQ_ID <= '0';
 			BNE_ID <= '0';
+			branch_ID <= '0';
 			instName_ID  <= NOP;
 			load_ID <= '0';
 			Rtype_ID <= '0';
@@ -108,6 +111,7 @@ begin
 				jal_ID <= '0';
 				BEQ_ID <= '0';
 				BNE_ID <= '0';
+				branch_ID <= '0';
 				instName_ID  <= NOP;
 				load_ID <= '0';
 				Rtype_ID <= '0';
@@ -133,6 +137,7 @@ begin
 				jal_ID <= jal_IF;
 				BEQ_ID <= BEQ_IF;
 				BNE_ID <= BNE_IF;
+				branch_ID <= branch_IF;
 				instName_ID  <= instName_IF;
 				load_ID <= load_IF;
 				Rtype_ID <= Rtype_IF;

@@ -5,53 +5,52 @@ use ieee.numeric_std.all;
 entity hazardUnit is
 	port (
 		--instruction indicator signals
+		load_IF : in std_logic;
+		Rtype_IF : in std_logic;
+		Itype_IF : in std_logic;
+		store_IF : in std_logic;
+		jr_IF : in std_logic;
+		jal_IF : in std_logic;
+		jump_IF : in std_logic;
+		branch_IF : in std_logic;
+		
+		load_ID : in std_logic;
+		Rtype_ID : in std_logic;
+		Itype_ID : in std_logic;
+		store_ID : in std_logic;
+		jr_ID : in std_logic;
 		jal_ID : in std_logic;
-		wr_ID : in std_logic;
-		WBSel_ID : in std_logic;
-		regDst_ID : in std_logic;
-		jump_ID : in std_logic;
-		memWrite_ID : in std_logic;
-		jtype_ID : in std_logic;
 		branch_ID : in std_logic;
 		
+		load_EX : in std_logic;
+		Rtype_EX : in std_logic;
+		Itype_EX : in std_logic;
+		store_EX : in std_logic;
 		jal_EX : in std_logic;
-		wr_EX : in std_logic;
-		WBSel_EX : in std_logic;
-		regDst_EX : in std_logic;
-		jump_EX : in std_logic;
-		memWrite_EX : in std_logic;
-		jtype_EX : in std_logic;
-		branch_EX : in std_logic;
 		
+		load_MEM : in std_logic;
+		Rtype_MEM : in std_logic;
+		Itype_MEM : in std_logic;
 		jal_MEM : in std_logic;
-		wr_MEM : in std_logic;
-		WBSel_MEM : in std_logic;
-		regDst_MEM : in std_logic;
-		jump_MEM : in std_logic;
-		memWrite_MEM : in std_logic;
-		jtype_MEM : in std_logic;
-		branch_MEM : in std_logic;
 		
+		load_WB : in std_logic;
+		Rtype_WB : in std_logic;
+		Itype_WB : in std_logic;
 		jal_WB : in std_logic;
-		wr_WB : in std_logic;
-		WBSel_WB : in std_logic;
-		regDst_WB : in std_logic;
-		jump_WB : in std_logic;
-		memWrite_WB : in std_logic;
-		jtype_WB : in std_logic;
-		branch_WB : in std_logic;
 		
 		--register signals
-		rs_IF : in std_logic;
-		rt_IF : in std_logic;
-		rs_ID : in std_logic;
-		rt_ID : in std_logic;
-		rd_ID : in std_logic;
-		rs_EX : in std_logic;
-		rt_EX : in std_logic;
-		rd_EX : in std_logic;
-		rt_MEM : in std_logic;
-		rd_MEM : in std_logic;
+		rs_IF : in std_logic_vector(4 downto 0);
+		rt_IF : in std_logic_vector(4 downto 0);
+		rs_ID : in std_logic_vector(4 downto 0);
+		rt_ID : in std_logic_vector(4 downto 0);
+		rd_ID : in std_logic_vector(4 downto 0);
+		rs_EX : in std_logic_vector(4 downto 0);
+		rt_EX : in std_logic_vector(4 downto 0);
+		rd_EX : in std_logic_vector(4 downto 0);
+		rt_MEM : in std_logic_vector(4 downto 0);
+		rd_MEM : in std_logic_vector(4 downto 0);
+		rt_WB : in std_logic_vector(4 downto 0);
+		rd_WB : in std_logic_vector(4 downto 0);
 		
 		--data forwarding control signals
 		stall : out std_logic;
@@ -68,5 +67,155 @@ architecture RTL of hazardUnit is
 	constant C_REGDATA : std_logic_vector(1 downto 0) := "10";
 	constant C_PC4 : std_logic_vector(1 downto 0) := "11";
 begin
-	
+	process(all)
+	begin
+		ALU_srcA_sel <= C_DEFAULT;
+		ALU_srcB_sel <= C_DEFAULT;
+		IDEX_q0_sel <= C_DEFAULT;
+		IDEX_q1_sel <= C_DEFAULT;
+		stall <= '0';
+---------------------------------------------------Write Back-----------------------------------------------------------------------------------------
+		
+		--Rtype in write-back stage and followed by data hazards
+		if (Rtype_WB='1') then
+			--followed by Rtype, Itype, load, or store 2 instructions later with rd=rs
+			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rd_WB = rs_EX)) then
+				ALU_srcA_sel <= C_REGDATA;			--(3)forward WB data to source A of the ALU
+			end if;
+			--followed by Rtype or store 2 instructions behind with rd=rt
+			if ((Rtype_EX='1' or store_EX='1') and (rd_WB = rt_EX)) then
+				ALU_srcB_sel <= C_REGDATA;			--(4)forward WB data to source B of the ALU
+			end if;
+			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with rd=rs
+			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and (rd_WB = rs_ID)) then
+				IDEX_q0_sel <= C_REGDATA;			--(5)forward WB data to q0 of decode stage
+			end if;
+			--followed by Rtybe, store, or branch 3 instructions behind with rd=rt
+			if ((branch_ID='1' or Rtype_ID='1' or store_ID='1') and (rd_WB = rt_ID)) then
+				IDEX_q1_sel <= C_REGDATA;			--(6)forward WB data to q1 of decode stage
+			end if;
+		end if;
+		
+		--Itype in write-back stage and followed by data hazards
+		if (Itype_WB='1') then
+			--followed by Rtype, Itype, load, or store 2 instructions later with rd=rs
+			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rt_WB = rs_EX)) then
+				ALU_srcA_sel <= C_REGDATA;			--(3)forward WB data to source A of the ALU
+			end if;
+			--followed by Rtype or store 2 instructions behind with rd=rt
+			if ((Rtype_EX='1' or store_EX='1') and (rt_WB = rt_EX)) then
+				ALU_srcB_sel <= C_REGDATA;			--(4)forward WB data to source B of the ALU
+			end if;
+			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with rd=rs
+			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and (rt_WB = rs_ID)) then
+				IDEX_q0_sel <= C_REGDATA;			--(5)forward WB data to q0 of decode stage
+			end if;
+			--followed by Rtybe, store, or branch 3 instructions behind with rd=rt
+			if ((branch_ID='1' or Rtype_ID='1' or store_ID='1') and (rt_WB = rt_ID)) then
+				IDEX_q1_sel <= C_REGDATA;			--(6)forward WB data to q1 of decode stage
+			end if;
+		end if;
+		
+		--Load in write-back stage and followed by data hazards
+		if (load_WB='1') then
+			--followed by Rtype, Itype, load, or store 2 instructions later with rd=rs
+			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rt_WB = rs_EX)) then
+				ALU_srcA_sel <= C_REGDATA;			--(3)forward WB data to source A of the ALU
+			end if;
+			--followed by Rtype or store 2 instructions behind with rd=rt
+			if ((Rtype_EX='1' or store_EX='1') and (rt_WB = rt_EX)) then
+				ALU_srcB_sel <= C_REGDATA;			--(4)forward WB data to source B of the ALU
+			end if;
+			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with rd=rs
+			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and (rt_WB = rs_ID)) then
+				IDEX_q0_sel <= C_REGDATA;			--(5)forward WB data to q0 of decode stage
+			end if;
+			--followed by Rtybe, store, or branch 3 instructions behind with rd=rt
+			if ((branch_ID='1' or Rtype_ID='1' or store_ID='1') and (rt_WB = rt_ID)) then
+				IDEX_q1_sel <= C_REGDATA;			--(6)forward WB data to q1 of decode stage
+			end if;
+		end if;
+		
+---------------------------------------------------Memory-----------------------------------------------------------------------------------------
+		
+
+		--Rtype in memory stage and followed by data hazards
+		if (Rtype_MEM='1') then
+			--followed by Rtype, Itype, load, or store with rd=rs
+			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rd_MEM = rs_EX)) then
+				ALU_srcA_sel <= C_ALU;			--(1) forward ALU output to source A of the ALU
+			end if;
+			--followed by Rtype or store with rd=rt
+			if ((Rtype_EX='1' or store_EX='1') and (rd_MEM = rt_EX)) then
+				ALU_srcB_sel <= C_ALU;			--(2)forward ALU output to source B of the ALU
+			end if;
+			--followed by jr or branch 2 instructions behind with rd=rs
+			if ((jr_ID='1' or branch_ID='1') and (rd_MEM = rs_ID)) then
+				IDEX_q0_sel <= C_ALU;			--(7)forward ALU output to q0 of decode stage
+			end if;
+			--followed by branch 2 instructions behind with rd=rt
+			if ((branch_ID='1') and (rd_MEM = rt_ID)) then
+				IDEX_q1_sel <= C_ALU;			--(8)forward ALU otuput to q1 of decode stage
+			end if;
+		end if;
+		
+		--Itype in memory stage and followed by data hazards
+		if (Itype_MEM='1') then
+			--followed by Rtype, Itype, load, or store with rd=rs
+			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rt_MEM = rs_EX)) then
+				ALU_srcA_sel <= C_ALU;			--(1) forward ALU output to source A of the ALU
+			end if;
+			--followed by Rtype or store with rd=rt
+			if ((Rtype_EX='1' or store_EX='1') and (rt_MEM = rt_EX)) then
+				ALU_srcB_sel <= C_ALU;			--(2)forward ALU output to source B of the ALU
+			end if;
+			--followed by jr or branch 2 instructions behind with rd=rs
+			if ((jr_ID='1' or branch_ID='1') and (rt_MEM = rs_ID)) then
+				IDEX_q0_sel <= C_ALU;			--(7)forward ALU output to q0 of decode stage
+			end if;
+			--followed by branch 2 instructions behind with rd=rt
+			if ((branch_ID='1') and (rt_MEM = rt_ID)) then
+				IDEX_q1_sel <= C_ALU;			--(8)forward ALU otuput to q1 of decode stage
+			end if;
+		end if;
+		
+---------------------------------------------------Execute-----------------------------------------------------------------------------------------
+
+		--Load in execute stage and followed by a JR or branch data hazard 2 instructions behind; must stall!
+		if (load_EX='1' and ((jr_IF='1' and (rt_EX = rs_IF)) or (branch_IF='1' and ((rt_EX = rs_IF) or (rt_EX = rt_IF))))) then
+			stall <= '1';
+		end if;
+		
+---------------------------------------------------Decode-----------------------------------------------------------------------------------------
+		
+		
+		
+		--Rtype in decode stage and followed by a JR or branch data hazard; must stall!
+		if (Rtype_ID='1' and ((jr_IF='1' and (rd_ID = rs_IF)) or (branch_IF='1' and ((rd_ID = rs_IF) or (rd_ID = rt_IF))))) then
+			stall <= '1';
+		end if;
+		
+
+		--Itype in decode stage and followed by a JR or branch data hazard; must stall!
+		if (Itype_ID='1' and ((jr_IF='1' and (rt_ID = rs_IF)) or (branch_IF='1' and ((rt_ID = rs_IF) or (rt_ID = rt_IF))))) then
+			stall <= '1';
+		end if;
+		
+		--load in decode stage and followed by an instruction with rt=rs or rt=rt; must stall!
+		if (load_ID='1') then
+			if ((Rtype_IF='1' or Itype_IF='1' or load_IF='1' or store_IF='1' or jr_IF='1' or branch_IF='1') and (rt_ID = rs_IF)) then
+				stall <= '1';
+			end if;
+			if ((Rtype_IF='1' or store_IF='1' or branch_IF='1') and (rt_ID = rt_IF)) then
+				stall <= '1';
+			end if;
+		end if;
+		
+		
+		if (Itype_MEM='1' and (Rtype_EX='1' or store_EX='1') and (rt_MEM = rs_EX)) then
+			ALU_srcA_sel <= C_ALU;
+		end if;
+		
+		
+	end process;
 end RTL;

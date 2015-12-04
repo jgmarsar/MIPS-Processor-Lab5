@@ -14,12 +14,18 @@ entity MEM_WB_reg is
 		WriteDataSel_MEM : in std_logic;
 		jal_MEM : in std_logic;
 		instName_MEM : in instruction_TYPE;
+		load_MEM : in std_logic;
+		Rtype_MEM : in std_logic;
+		Itype_MEM : in std_logic;
 		
 		wr_WB : out std_logic;
 		regDst_WB : out std_logic;
 		WriteDataSel_WB : out std_logic;
 		jal_WB : out std_logic;
 		instName_WB : out instruction_TYPE;
+		load_WB : out std_logic;
+		Rtype_WB : out std_logic;
+		Itype_WB : out std_logic;
 		
 		--datapath
 		readDataAdj_MEM : in std_logic_vector(31 downto 0);
@@ -52,6 +58,9 @@ begin
 			rt_WB <= (others => '0');
 			rd_WB <= (others => '0');
 			instName_WB <= NOP;
+			load_WB <= '0';
+			Rtype_WB <= '0';
+			Itype_WB <= '0';
 		elsif (rising_edge(clk)) then
 			wr_WB <= wr_MEM;
 			regDst_WB <= regDst_MEM;
@@ -63,6 +72,9 @@ begin
 			rt_WB <= rt_MEM;
 			rd_WB <= rd_MEM;
 			instName_WB <= instName_MEM;
+			load_WB <= load_MEM;
+			Rtype_WB <= Rtype_MEM;
+			Itype_WB <= Itype_MEM;
 		end if;
 	end process;
 end RTL;

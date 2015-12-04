@@ -17,9 +17,11 @@ entity ID_EX_reg is
 		MemWrite_ID : in std_logic;
 		sizeSel_ID : in std_logic_vector(1 downto 0);
 		jal_ID : in std_logic;
-		jump_ID : in std_logic;
-		branch_ID : in std_logic;
 		instName_ID : in instruction_TYPE;
+		load_ID : in std_logic;
+		Rtype_ID : in std_logic;
+		Itype_ID : in std_logic;
+		store_ID : in std_logic;
 		
 		ALUop_EX : out std_logic_vector(2 downto 0);
 		wr_EX : out std_logic;
@@ -29,9 +31,11 @@ entity ID_EX_reg is
 		MemWrite_EX : out std_logic;
 		sizeSel_EX : out std_logic_vector(1 downto 0);
 		jal_EX : out std_logic;
-		jump_EX : out std_logic;
-		branch_EX : out std_logic;
 		instName_EX : out instruction_TYPE;
+		load_EX : out std_logic;
+		Rtype_EX : out std_logic;
+		Itype_EX : out std_logic;
+		store_EX : out std_logic;
 		
 		--datapath
 		q0_ID : in std_logic_vector(31 downto 0);
@@ -70,8 +74,6 @@ begin
 			MemWrite_EX <= '0';
 			sizeSel_EX <= "00";
 			jal_EX <= '0';
-			jump_EX <= '0';
-			branch_EX <= '0';
 			q0_EX <= (others => '0');
 			q1_EX <= (others => '0');
 			ext_imm_EX <= (others => '0');
@@ -82,6 +84,10 @@ begin
 			rd_EX <= (others => '0');
 			PC4_EX <= (others => '0');
 			instName_EX <= NOP;
+			load_EX <= '0';
+			Rtype_EX <= '0';
+			Itype_EX <= '0';
+			store_EX <= '0';
 		elsif (rising_edge(clk)) then
 			ALUop_EX <= ALUop_ID;
 			wr_EX <= wr_ID;
@@ -91,8 +97,6 @@ begin
 			MemWrite_EX <= MemWrite_ID;
 			sizeSel_EX <= sizeSel_ID;
 			jal_EX <= jal_ID;
-			jump_EX <= jump_ID;
-			branch_EX <= branch_ID;
 			q0_EX <= q0_ID;
 			q1_EX <= q1_ID;
 			ext_imm_EX <= ext_imm_ID;
@@ -103,6 +107,10 @@ begin
 			rd_EX <= rd_ID;
 			PC4_EX <= PC4_ID;
 			instName_EX <= instName_ID;
+			load_EX <= load_ID;
+			Rtype_EX <= Rtype_ID;
+			Itype_EX <= Itype_ID;
+			store_EX <= store_ID;
 		end if;
 	end process;
 end RTL;

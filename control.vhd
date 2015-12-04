@@ -20,6 +20,7 @@ entity control is
 		jal : out std_logic;
 		BEQ : out std_logic;
 		BNE : out std_logic;
+		branch : out std_logic;
 		instName : out instruction_TYPE;
 		
 		--signals for hazard control
@@ -67,6 +68,7 @@ begin
 		jal <= '0';
 		BEQ <= '0';
 		BNE <= '0';
+		branch <= '0';
 		instName <= NOP;
 		
 		load <= '0';
@@ -128,6 +130,7 @@ begin
 				ext_sel <= C_SIGN;
 				jump <= '0';
 				BEQ <= '1';
+				branch <= '1';
 				instName <= I_BEQ;
 			when "000101" =>			--BNE
 				ALUop <= "001";
@@ -135,6 +138,7 @@ begin
 				ext_sel <= C_SIGN;
 				jump <= '0';
 				BNE <= '1';
+				branch <= '1';
 				instName <= I_BNE;
 			when "001000" =>			--ADDI
 				Itype <= '1';
