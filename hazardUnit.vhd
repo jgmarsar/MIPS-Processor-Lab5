@@ -65,7 +65,7 @@ architecture RTL of hazardUnit is
 	constant C_DEFAULT : std_logic_vector(1 downto 0) := "00";
 	constant C_ALU : std_logic_vector(1 downto 0) := "01";
 	constant C_REGDATA : std_logic_vector(1 downto 0) := "10";
-	constant C_PC4 : std_logic_vector(1 downto 0) := "11";
+	constant C_PC4_MEM : std_logic_vector(1 downto 0) := "11";
 begin
 	process(all)
 	begin
@@ -136,6 +136,26 @@ begin
 			end if;
 		end if;
 		
+		--jal in write-back stage and followed by data hazards
+		if (jal_WB='1') then
+			--followed by Rtype, Itype, load, or store 2 instructions later with 31=rs
+			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and ("11111" = rs_EX)) then
+				ALU_srcA_sel <= C_REGDATA;			--(23)forward WB data (PC+4) to source A of the ALU
+			end if;
+			--followed by Rtype or store 2 instructions behind with 31=rt
+			if ((Rtype_EX='1' or store_EX='1') and ("11111" = rt_EX)) then
+				ALU_srcB_sel <= C_REGDATA;			--(24)forward WB data (PC+4) to source B of the ALU
+			end if;
+			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with 31=rs
+			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and ("11111" = rs_ID)) then
+				IDEX_q0_sel <= C_REGDATA;			--(25)forward WB data (PC+4) to q0 of decode stage
+			end if;
+			--followed by Rtybe, store, or branch 3 instructions behind with 31=rt
+			if ((branch_ID='1' or Rtype_ID='1' or store_ID='1') and ("11111" = rt_ID)) then
+				IDEX_q1_sel <= C_REGDATA;			--(26)forward WB data (PC+4) to q1 of decode stage
+			end if;
+		end if;
+		
 ---------------------------------------------------Memory-----------------------------------------------------------------------------------------
 		
 
@@ -179,6 +199,26 @@ begin
 			end if;
 		end if;
 		
+		--jal in memory stage and followed by data hazards
+		if (jal_MEM='1') then
+			--followed by Rtype, Itype, load, or store with 31=rs
+			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and ("11111" = rs_EX)) then
+				ALU_srcA_sel <= C_PC4_MEM;			--(21) forward PC+4_MEM to source A of the ALU
+			end if;
+			--followed by Rtype or store with 31=rt
+			if ((Rtype_EX='1' or store_EX='1') and ("11111" = rt_EX)) then
+				ALU_srcB_sel <= C_PC4_MEM;			--(22)forward PC+4_MEM to source B of the ALU
+			end if;
+			--followed by jr or branch 2 instructions behind with 31=rs
+			if ((jr_ID='1' or branch_ID='1') and ("11111" = rs_ID)) then
+				IDEX_q0_sel <= C_PC4_MEM;			--(27)forward PC+4_MEM to q0 of decode stage
+			end if;
+			--followed by branch 2 instructions behind with 31=rt
+			if ((branch_ID='1') and ("11111" = rt_ID)) then
+				IDEX_q1_sel <= C_PC4_MEM;			--(28)forward PC+4_MEM to q1 of decode stage
+			end if;
+		end if;
+		
 ---------------------------------------------------Execute-----------------------------------------------------------------------------------------
 
 		--Load in execute stage and followed by a JR or branch data hazard 2 instructions behind; must stall!
@@ -211,11 +251,10 @@ begin
 			end if;
 		end if;
 		
-		
-		if (Itype_MEM='1' and (Rtype_EX='1' or store_EX='1') and (rt_MEM = rs_EX)) then
-			ALU_srcA_sel <= C_ALU;
+		--load in decode stage and followed by a JR or branch data hazard; must stall!
+		if (jal_ID='1' and ((jr_IF='1' and ("11111" = rs_IF)) or (branch_IF='1' and (("11111" = rs_IF) or ("11111" = rt_IF))))) then
+			stall <= '1';
 		end if;
-		
 		
 	end process;
 end RTL;
