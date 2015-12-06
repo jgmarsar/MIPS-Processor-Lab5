@@ -672,7 +672,7 @@ begin
 			WriteDataSel_WB  => WriteDataSel_WB,
 			jal_WB           => jal_WB,
 			instName_WB      => instName_WB,
-			load_WB		 	 => load_MEM,
+			load_WB		 	 => load_WB,
 			Rtype_WB		 => Rtype_WB,
 			Itype_WB		 => Itype_WB,
 			readDataAdj_MEM  => readDataAdj_MEM,
