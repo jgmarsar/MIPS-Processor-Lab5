@@ -41,6 +41,7 @@ architecture STR of datapath is
 	signal instruction_ID : std_logic_vector(31 downto 0);
 	signal ext_imm_ID : std_logic_vector(31 downto 0);
 	signal ext_imm_EX : std_logic_vector(31 downto 0);
+	signal ui : std_logic_vector(31 downto 0);
 	signal func_EX : std_logic_vector(5 downto 0);
 	signal shamt_EX : std_logic_vector(4 downto 0);
 	signal rs_ID : std_logic_vector(4 downto 0);
@@ -144,22 +145,25 @@ architecture STR of datapath is
 	signal stall : std_logic;
 	signal ALU_srcA_sel : std_logic_vector(1 downto 0);
 	signal ALU_srcB_sel : std_logic_vector(1 downto 0);
-	signal IDEX_q0_sel : std_logic_vector(1 downto 0);
-	signal IDEX_q1_sel : std_logic_vector(1 downto 0);
+	signal IDEX_q0_sel : std_logic_vector(2 downto 0);
+	signal IDEX_q1_sel : std_logic_vector(2 downto 0);
 	signal load_IF : std_logic;
 	signal Rtype_IF : std_logic;
 	signal Itype_IF : std_logic;
 	signal store_IF : std_logic;
 	signal jr_IF : std_logic;
+	signal lui_IF : std_logic;
 	signal load_ID : std_logic;
 	signal Rtype_ID : std_logic;
 	signal Itype_ID : std_logic;
 	signal store_ID : std_logic;
 	signal jr_ID : std_logic;
+	signal lui_ID : std_logic;
 	signal load_EX : std_logic;
 	signal Rtype_EX : std_logic;
 	signal Itype_EX : std_logic;
 	signal store_EX : std_logic;
+	signal lui_EX : std_logic;
 	signal load_MEM : std_logic;
 	signal Rtype_MEM : std_logic;
 	signal Itype_MEM : std_logic;
@@ -167,12 +171,6 @@ architecture STR of datapath is
 	signal Rtype_WB : std_logic;
 	signal Itype_WB : std_logic;
 begin
-	
-	--REMOVE:
-	--IDEX_q0_sel <= "00";
-	--IDEX_q1_sel <= "00";
-	--ALU_srcA_sel <= "00";
-	--ALU_srcB_sel <= "00";
 	
 	--HAZARD UNIT
 	U_HAZ : entity work.hazardUnit
@@ -197,6 +195,7 @@ begin
 			Itype_EX     => Itype_EX,
 			store_EX     => store_EX,
 			jal_EX       => jal_EX,
+			lui_EX		 => lui_EX,
 			load_MEM     => load_MEM,
 			Rtype_MEM    => Rtype_MEM,
 			Itype_MEM    => Itype_MEM,
@@ -348,6 +347,7 @@ begin
 			branch_IF		=> branch_IF,
 			instName_IF     => instName_IF,
 			load_IF         => load_IF,
+			lui_IF			=> lui_IF,
 			Rtype_IF        => Rtype_IF,
 			Itype_IF        => Itype_IF,
 			store_IF        => store_IF,
@@ -373,6 +373,7 @@ begin
 			branch_ID		=> branch_ID,
 			instName_ID     => instName_ID,
 			load_ID         => load_ID,
+			lui_ID			=> lui_ID,
 			Rtype_ID        => Rtype_ID,
 			Itype_ID        => Itype_ID,
 			store_ID        => store_ID,
@@ -406,7 +407,8 @@ begin
 			Rtype => Rtype_IF,
 			Itype => Itype_IF,
 			store => store_IF,
-			jr => jr_IF
+			jr => jr_IF,
+			lui => lui_IF
 		);
 	
 	U_REGS : entity work.registerFile
@@ -461,22 +463,33 @@ begin
 			out0 => ext_imm_ID
 		);
 		
-	U_Q0_MUX : entity work.mux32x4
+	ui(31 downto 16) <= ext_imm_EX(15 downto 0);
+	ui(15 downto 0) <= (others => '0');
+		
+	U_Q0_MUX : entity work.mux32x8
 		port map(
 			in0 => q0,
 			in1 => ALUout_MEM,
 			in2 => regData,
 			in3 => PC4_MEM,
+			in4 => ui,
+			in5 => PC4_EX,
+			in6 => (others => '0'),
+			in7 => (others => '0'),
 			Sel => IDEX_q0_sel,
 			O   => q0_ID
 		);
 		
-	U_Q1_MUX : entity work.mux32x4
+	U_Q1_MUX : entity work.mux32x8
 		port map(
 			in0 => q1,
 			in1 => ALUout_MEM,
 			in2 => regData,
 			in3 => PC4_MEM,
+			in4 => ui,
+			in5 => PC4_EX,
+			in6 => (others => '0'),
+			in7 => (others => '0'),
 			Sel => IDEX_q1_sel,
 			O   => q1_ID
 		);
@@ -498,6 +511,7 @@ begin
 			Rtype_ID 		=> Rtype_ID,
 			Itype_ID 		=> Itype_ID,
 			store_ID 		=> store_ID,
+			lui_ID			=> lui_ID,
 			ALUop_EX        => ALUop_EX,
 			wr_EX           => wr_EX,
 			ALUSrc_EX       => ALUSrc_EX,
@@ -511,6 +525,7 @@ begin
 			Rtype_EX 		=> Rtype_EX,
 			Itype_EX 		=> Itype_EX,
 			store_EX 		=> store_EX,
+			lui_EX			=> lui_EX,
 			q0_ID           => q0_ID,
 			q1_ID           => q1_ID,
 			ext_imm_ID      => ext_imm_ID,
@@ -627,7 +642,7 @@ begin
 			address => ALUout_EX(9 downto 2),		--word addressed; ignore 2 LSBs
 			byteena => byteEnable_EX,
 			clock   => clk,
-			data    => writeData,
+			data    => srcb_default,  --writeData,
 			wren    => MemWrite_EX,
 			q       => readData
 		);

@@ -28,7 +28,8 @@ entity control is
 		Rtype : out std_logic;
 		Itype : out std_logic;
 		store : out std_logic;
-		jr : out std_logic
+		jr : out std_logic;
+		lui : out std_logic
 	);
 end entity control;
 
@@ -76,6 +77,7 @@ begin
 		Itype <= '0';
 		store <= '0';
 		jr <= '0';
+		lui <= '0';
 		case opcode is
 			when "000000" =>			--R-type
 				Rtype <= '1';
@@ -203,6 +205,7 @@ begin
 				regDst <= C_RT;
 				ext_sel <= C_ZERO;
 				instName <= I_LUI;
+				lui <= '1';
 			when "100011" =>			--LW
 				load <= '1';
 				ALUop <= "000";

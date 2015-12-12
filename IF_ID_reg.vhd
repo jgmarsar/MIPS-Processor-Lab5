@@ -31,6 +31,7 @@ entity IF_ID_reg is
 		Itype_IF : in std_logic;
 		store_IF : in std_logic;
 		jr_IF : in std_logic;
+		lui_IF : in std_logic;
 		rs_IF : in std_logic_vector(4 downto 0);
 		rt_IF : in std_logic_vector(4 downto 0);
 		rd_IF : in std_logic_vector(4 downto 0);
@@ -57,6 +58,7 @@ entity IF_ID_reg is
 		Itype_ID : out std_logic;
 		store_ID : out std_logic;
 		jr_ID : out std_logic;
+		lui_ID : out std_logic;
 		rs_ID : out std_logic_vector(4 downto 0);
 		rt_ID : out std_logic_vector(4 downto 0);
 		rd_ID : out std_logic_vector(4 downto 0)
@@ -91,6 +93,7 @@ begin
 			Itype_ID <= '0';
 			store_ID  <= '0';
 			jr_ID <= '0';
+			lui_ID <= '0';
 			rs_ID <= (others => '0');
 			rt_ID <= (others => '0');
 			rd_ID <= (others => '0');
@@ -118,6 +121,7 @@ begin
 				Itype_ID <= '0';
 				store_ID  <= '0';
 				jr_ID <= '0';
+				lui_ID <= '0';
 				rs_ID <= (others => '0');
 				rt_ID <= (others => '0');
 				rd_ID <= (others => '0');
@@ -144,6 +148,7 @@ begin
 				Itype_ID <= Itype_IF;
 				store_ID  <= store_IF;
 				jr_ID <= jr_IF;
+				lui_ID <= lui_IF;
 				rs_ID <= rs_IF;
 				rt_ID <= rt_IF;
 				rd_ID <= rd_IF;

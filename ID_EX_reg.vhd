@@ -22,6 +22,7 @@ entity ID_EX_reg is
 		Rtype_ID : in std_logic;
 		Itype_ID : in std_logic;
 		store_ID : in std_logic;
+		lui_ID : in std_logic;
 		
 		ALUop_EX : out std_logic_vector(2 downto 0);
 		wr_EX : out std_logic;
@@ -36,6 +37,7 @@ entity ID_EX_reg is
 		Rtype_EX : out std_logic;
 		Itype_EX : out std_logic;
 		store_EX : out std_logic;
+		lui_EX : out std_logic;
 		
 		--datapath
 		q0_ID : in std_logic_vector(31 downto 0);
@@ -88,6 +90,7 @@ begin
 			Rtype_EX <= '0';
 			Itype_EX <= '0';
 			store_EX <= '0';
+			lui_EX <= '0';
 		elsif (rising_edge(clk)) then
 			ALUop_EX <= ALUop_ID;
 			wr_EX <= wr_ID;
@@ -111,6 +114,7 @@ begin
 			Rtype_EX <= Rtype_ID;
 			Itype_EX <= Itype_ID;
 			store_EX <= store_ID;
+			lui_EX <= lui_ID;
 		end if;
 	end process;
 end RTL;

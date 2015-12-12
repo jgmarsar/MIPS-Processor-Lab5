@@ -27,6 +27,7 @@ entity hazardUnit is
 		Itype_EX : in std_logic;
 		store_EX : in std_logic;
 		jal_EX : in std_logic;
+		lui_EX : in std_logic;
 		
 		load_MEM : in std_logic;
 		Rtype_MEM : in std_logic;
@@ -56,21 +57,23 @@ entity hazardUnit is
 		stall : out std_logic;
 		ALU_srcA_sel : out std_logic_vector(1 downto 0);
 		ALU_srcB_sel : out std_logic_vector(1 downto 0);
-		IDEX_q0_sel : out std_logic_vector(1 downto 0);
-		IDEX_q1_sel : out std_logic_vector(1 downto 0)
+		IDEX_q0_sel : out std_logic_vector(2 downto 0);
+		IDEX_q1_sel : out std_logic_vector(2 downto 0)
 	);
 end hazardUnit;
 
 architecture RTL of hazardUnit is
-	constant C_DEFAULT : std_logic_vector(1 downto 0) := "00";
-	constant C_ALU : std_logic_vector(1 downto 0) := "01";
-	constant C_REGDATA : std_logic_vector(1 downto 0) := "10";
-	constant C_PC4_MEM : std_logic_vector(1 downto 0) := "11";
+	constant C_DEFAULT : std_logic_vector(2 downto 0) := "000";
+	constant C_ALU : std_logic_vector(2 downto 0) := "001";
+	constant C_REGDATA : std_logic_vector(2 downto 0) := "010";
+	constant C_PC4_MEM : std_logic_vector(2 downto 0) := "011";
+	constant C_UI : std_logic_vector(2 downto 0) := "100";
+	constant C_PC4_EX : std_logic_vector(2 downto 0) := "101";
 begin
 	process(all)
 	begin
-		ALU_srcA_sel <= C_DEFAULT;
-		ALU_srcB_sel <= C_DEFAULT;
+		ALU_srcA_sel <= C_DEFAULT(1 downto 0);
+		ALU_srcB_sel <= C_DEFAULT(1 downto 0);
 		IDEX_q0_sel <= C_DEFAULT;
 		IDEX_q1_sel <= C_DEFAULT;
 		stall <= '0';
@@ -80,11 +83,11 @@ begin
 		if (Rtype_WB='1') then
 			--followed by Rtype, Itype, load, or store 2 instructions later with rd=rs
 			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rd_WB = rs_EX)) then
-				ALU_srcA_sel <= C_REGDATA;			--(3)forward WB data to source A of the ALU
+				ALU_srcA_sel <= C_REGDATA(1 downto 0);			--(3)forward WB data to source A of the ALU
 			end if;
 			--followed by Rtype or store 2 instructions behind with rd=rt
 			if ((Rtype_EX='1' or store_EX='1') and (rd_WB = rt_EX)) then
-				ALU_srcB_sel <= C_REGDATA;			--(4)forward WB data to source B of the ALU
+				ALU_srcB_sel <= C_REGDATA(1 downto 0);			--(4)forward WB data to source B of the ALU
 			end if;
 			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with rd=rs
 			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and (rd_WB = rs_ID)) then
@@ -100,11 +103,11 @@ begin
 		if (Itype_WB='1') then
 			--followed by Rtype, Itype, load, or store 2 instructions later with rd=rs
 			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rt_WB = rs_EX)) then
-				ALU_srcA_sel <= C_REGDATA;			--(3)forward WB data to source A of the ALU
+				ALU_srcA_sel <= C_REGDATA(1 downto 0);			--(3)forward WB data to source A of the ALU
 			end if;
 			--followed by Rtype or store 2 instructions behind with rd=rt
 			if ((Rtype_EX='1' or store_EX='1') and (rt_WB = rt_EX)) then
-				ALU_srcB_sel <= C_REGDATA;			--(4)forward WB data to source B of the ALU
+				ALU_srcB_sel <= C_REGDATA(1 downto 0);			--(4)forward WB data to source B of the ALU
 			end if;
 			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with rd=rs
 			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and (rt_WB = rs_ID)) then
@@ -120,11 +123,11 @@ begin
 		if (load_WB='1') then
 			--followed by Rtype, Itype, load, or store 2 instructions later with rd=rs
 			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rt_WB = rs_EX)) then
-				ALU_srcA_sel <= C_REGDATA;			--(3)forward WB data to source A of the ALU
+				ALU_srcA_sel <= C_REGDATA(1 downto 0);			--(3)forward WB data to source A of the ALU
 			end if;
 			--followed by Rtype or store 2 instructions behind with rd=rt
 			if ((Rtype_EX='1' or store_EX='1') and (rt_WB = rt_EX)) then
-				ALU_srcB_sel <= C_REGDATA;			--(4)forward WB data to source B of the ALU
+				ALU_srcB_sel <= C_REGDATA(1 downto 0);			--(4)forward WB data to source B of the ALU
 			end if;
 			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with rd=rs
 			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and (rt_WB = rs_ID)) then
@@ -140,11 +143,11 @@ begin
 		if (jal_WB='1') then
 			--followed by Rtype, Itype, load, or store 2 instructions later with 31=rs
 			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and ("11111" = rs_EX)) then
-				ALU_srcA_sel <= C_REGDATA;			--(23)forward WB data (PC+4) to source A of the ALU
+				ALU_srcA_sel <= C_REGDATA(1 downto 0);			--(23)forward WB data (PC+4) to source A of the ALU
 			end if;
 			--followed by Rtype or store 2 instructions behind with 31=rt
 			if ((Rtype_EX='1' or store_EX='1') and ("11111" = rt_EX)) then
-				ALU_srcB_sel <= C_REGDATA;			--(24)forward WB data (PC+4) to source B of the ALU
+				ALU_srcB_sel <= C_REGDATA(1 downto 0);			--(24)forward WB data (PC+4) to source B of the ALU
 			end if;
 			--followed by Rtype, Itype, load, store, jr or branch 3 instructions behind with 31=rs
 			if ((Rtype_ID='1' or store_ID='1' or Itype_ID='1' or load_ID='1' or jr_ID='1' or branch_ID='1') and ("11111" = rs_ID)) then
@@ -163,11 +166,11 @@ begin
 		if (Rtype_MEM='1') then
 			--followed by Rtype, Itype, load, or store with rd=rs
 			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rd_MEM = rs_EX)) then
-				ALU_srcA_sel <= C_ALU;			--(1) forward ALU output to source A of the ALU
+				ALU_srcA_sel <= C_ALU(1 downto 0);			--(1) forward ALU output to source A of the ALU
 			end if;
 			--followed by Rtype or store with rd=rt
 			if ((Rtype_EX='1' or store_EX='1') and (rd_MEM = rt_EX)) then
-				ALU_srcB_sel <= C_ALU;			--(2)forward ALU output to source B of the ALU
+				ALU_srcB_sel <= C_ALU(1 downto 0);			--(2)forward ALU output to source B of the ALU
 			end if;
 			--followed by jr or branch 2 instructions behind with rd=rs
 			if ((jr_ID='1' or branch_ID='1') and (rd_MEM = rs_ID)) then
@@ -183,11 +186,11 @@ begin
 		if (Itype_MEM='1') then
 			--followed by Rtype, Itype, load, or store with rd=rs
 			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and (rt_MEM = rs_EX)) then
-				ALU_srcA_sel <= C_ALU;			--(1) forward ALU output to source A of the ALU
+				ALU_srcA_sel <= C_ALU(1 downto 0);			--(1) forward ALU output to source A of the ALU
 			end if;
 			--followed by Rtype or store with rd=rt
 			if ((Rtype_EX='1' or store_EX='1') and (rt_MEM = rt_EX)) then
-				ALU_srcB_sel <= C_ALU;			--(2)forward ALU output to source B of the ALU
+				ALU_srcB_sel <= C_ALU(1 downto 0);			--(2)forward ALU output to source B of the ALU
 			end if;
 			--followed by jr or branch 2 instructions behind with rd=rs
 			if ((jr_ID='1' or branch_ID='1') and (rt_MEM = rs_ID)) then
@@ -203,11 +206,11 @@ begin
 		if (jal_MEM='1') then
 			--followed by Rtype, Itype, load, or store with 31=rs
 			if ((Rtype_EX='1' or store_EX='1' or Itype_EX='1' or load_EX='1') and ("11111" = rs_EX)) then
-				ALU_srcA_sel <= C_PC4_MEM;			--(21) forward PC+4_MEM to source A of the ALU
+				ALU_srcA_sel <= C_PC4_MEM(1 downto 0);			--(21) forward PC+4_MEM to source A of the ALU
 			end if;
 			--followed by Rtype or store with 31=rt
 			if ((Rtype_EX='1' or store_EX='1') and ("11111" = rt_EX)) then
-				ALU_srcB_sel <= C_PC4_MEM;			--(22)forward PC+4_MEM to source B of the ALU
+				ALU_srcB_sel <= C_PC4_MEM(1 downto 0);			--(22)forward PC+4_MEM to source B of the ALU
 			end if;
 			--followed by jr or branch 2 instructions behind with 31=rs
 			if ((jr_ID='1' or branch_ID='1') and ("11111" = rs_ID)) then
@@ -224,6 +227,26 @@ begin
 		--Load in execute stage and followed by a JR or branch data hazard 2 instructions behind; must stall!
 		if (load_EX='1' and ((jr_IF='1' and (rt_EX = rs_IF)) or (branch_IF='1' and ((rt_EX = rs_IF) or (rt_EX = rt_IF))))) then
 			stall <= '1';
+		end if;
+		
+		--LUI in execute stage and followed by jr or branch data hazard
+		if (lui_EX='1') then
+			if((jr_ID='1' or branch_ID='1') and (rt_EX = rs_ID)) then
+				IDEX_q0_sel <= C_UI;				--(17)forward ui to q0 of decode stage
+			end if;
+			if((branch_ID='1') and (rt_EX = rt_ID)) then
+				IDEX_q1_sel <= C_UI;				--(18)forward ui to q1 of decode stage
+			end if;
+		end if;
+		
+		--jal in execute stage and followed by jr or branch data hazard
+		if (jal_EX='1') then
+			if((jr_ID='1' or branch_ID='1') and ("11111" = rs_ID)) then
+				IDEX_q0_sel <= C_PC4_EX;			--(29)forward PC4_EX to q0 of decode stage
+			end if;
+			if((branch_ID='1') and ("11111" = rt_ID)) then
+				IDEX_q1_sel <= C_PC4_EX;				--(30)forward PC4_EX to q1 of decode stage
+			end if;
 		end if;
 		
 ---------------------------------------------------Decode-----------------------------------------------------------------------------------------
@@ -251,10 +274,10 @@ begin
 			end if;
 		end if;
 		
-		--load in decode stage and followed by a JR or branch data hazard; must stall!
-		if (jal_ID='1' and ((jr_IF='1' and ("11111" = rs_IF)) or (branch_IF='1' and (("11111" = rs_IF) or ("11111" = rt_IF))))) then
-			stall <= '1';
-		end if;
+		--jal in decode stage and followed by a JR or branch data hazard; must stall!
+		--if (jal_ID='1' and ((jr_IF='1' and ("11111" = rs_IF)) or (branch_IF='1' and (("11111" = rs_IF) or ("11111" = rt_IF))))) then
+		--	stall <= '1';
+		--end if;
 		
 	end process;
 end RTL;
